@@ -1,4 +1,4 @@
-﻿<AttributeUsage(AttributeTargets.Parameter)>
+﻿<AttributeUsage(AttributeTargets.Parameter Or AttributeTargets.Property)>
 Public Class EntryParameterAttribute
     Inherits Attribute
     ''' <summary>
