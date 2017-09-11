@@ -8,7 +8,7 @@ Public Class App
     ''' </summary>
     ''' <typeparam name="TMain">包含应用程序入口点的类型</typeparam>
     ''' <param name="args">应用程序的参数</param>
-    ''' <exception cref="InvalidOperationException">在包含应用程序入口的程序集内找不到唯一的入口方法</exception>
+    ''' <exception cref="InvalidOperationException">在包含应用程序入口的程序集内找不到唯一的入口类或入口方法</exception>
     Public Sub Run(Of TMain As Class)(args As String())
         Dim asm = GetType(TMain).GetTypeInfo.Assembly
         Dim entryInfo = Aggregate t In asm.GetTypes
