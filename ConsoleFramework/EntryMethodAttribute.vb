@@ -6,6 +6,10 @@ Public Class EntryMethodAttribute
     Inherits Attribute
 
     Public Sub New(prefix As String)
+        If String.IsNullOrEmpty(prefix) Then
+            Throw New ArgumentException("前缀不得为空", NameOf(prefix))
+        End If
+
         Me.Prefix = prefix
     End Sub
 
