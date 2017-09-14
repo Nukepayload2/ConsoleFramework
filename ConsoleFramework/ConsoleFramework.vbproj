@@ -5,8 +5,14 @@
     <Authors>Nukepayload2</Authors>
     <Company>Nukepayload2</Company>
     <Product>Console Framework</Product>
-    <Description>A command-line parameter relational mapping library.</Description>
+    <Description>A command-line parameter mapping library.</Description>
     <Copyright>Copyright 2017 Nukepayload2</Copyright>
+    <PackageProjectUrl>https://github.com/Nukepayload2/ConsoleFramework</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/Nukepayload2/ConsoleFramework.git</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageReleaseNotes>Initial commit. Chinese documents only. No English version yet.</PackageReleaseNotes>
+    <PackageTags>console command-line parameter</PackageTags>
+    <NeutralLanguage>zh-CN</NeutralLanguage>
   </PropertyGroup>
 
   <ItemGroup>
