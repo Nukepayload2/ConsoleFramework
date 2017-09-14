@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "TestNormalParams": {
+      "commandName": "Project",
+      "commandLineArgs": "原图 比图 输出"
+    }
+  }
+}

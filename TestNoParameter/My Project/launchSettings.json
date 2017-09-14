@@ -1,0 +1,7 @@
+{
+  "profiles": {
+    "TestNoParameter": {
+      "commandName": "Project"
+    }
+  }
+}

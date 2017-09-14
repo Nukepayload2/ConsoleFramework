@@ -5,16 +5,37 @@ Imports System.ComponentModel.DataAnnotations
 ''' <summary>
 ''' 表示控制台应用程序
 ''' </summary>
-Public Class App
+Public NotInheritable Class Application
     ''' <summary>
-    ''' 运行控制台应用程序。
+    ''' 运行指定类型所属的程序集中的控制台应用程序。
     ''' </summary>
-    ''' <typeparam name="TMain">包含应用程序入口点的类型</typeparam>
+    ''' <typeparam name="TMain">包含应用程序入口点的程序集中任意一个类型</typeparam>
     ''' <param name="args">应用程序的参数</param>
     ''' <exception cref="InvalidOperationException">在包含应用程序入口的程序集内找不到唯一合适的入口类或入口方法</exception>
-    Public Sub Run(Of TMain As Class)(args As String())
-        Dim helpCommands = {"-?", "/?", "--?", "-help", "/help", "--help"}
+    Public Shared Sub Run(Of TMain As Class)(args As String())
         Dim asm = GetType(TMain).GetTypeInfo.Assembly
+        Run(args, asm)
+    End Sub
+
+    ''' <summary>
+    ''' 运行指定类型所属的程序集中的控制台应用程序。
+    ''' </summary>
+    ''' <param name="args">应用程序的参数</param>
+    ''' <param name="typeInAppAssembly">在应用程序程序集中的任意一个类型</param>
+    ''' <exception cref="InvalidOperationException">在包含应用程序入口的程序集内找不到唯一合适的入口类或入口方法</exception>
+    Public Shared Sub Run(args As String(), typeInAppAssembly As Type)
+        Dim asm = typeInAppAssembly.GetTypeInfo.Assembly
+        Run(args, asm)
+    End Sub
+
+    ''' <summary>
+    ''' 运行指定程序集中的控制台应用程序。
+    ''' </summary>
+    ''' <param name="args">应用程序的参数</param>
+    ''' <param name="typeInAppAssembly">应用程序程序集</param>
+    ''' <exception cref="InvalidOperationException">在包含应用程序入口的程序集内找不到唯一合适的入口类或入口方法</exception>
+    Public Shared Sub Run(args() As String, asm As Assembly)
+        Dim helpCommands = {"-?", "/?", "--?", "-help", "/help", "--help"}
         Dim entryInfo = Aggregate t In asm.GetTypes
                         Let c = t.GetTypeInfo.GetCustomAttribute(Of EntryClassAttribute)
                         Where c IsNot Nothing
@@ -47,7 +68,9 @@ Public Class App
         If params.Length = 0 Then
             ' 没参数
             entityProp = Nothing
-        Else
+#Disable Warning BC42104 ' 在为变量赋值之前，变量已被使用
+        ElseIf entityProp Is Nothing Then
+#Enable Warning BC42104 ' 在为变量赋值之前，变量已被使用
             ' 对应参数
             entityProp = Aggregate p In params
                          Let disp = p.GetCustomAttribute(Of DisplayAttribute)
@@ -86,56 +109,68 @@ Public Class App
             Next
             For i = 0 To args.Length - 1
                 Dim curArg = args(i)
+                ' 选择一个要处理的参数
+                Dim paraInf As CommandLineParameterInfo = Nothing
+                Dim isImplicitParam = False
                 If curArg.StartsWith(entryInfo.Prefix) Then
-                    Dim paraInf As CommandLineParameterInfo = Nothing
-                    If paramIndex.TryGetValue(curArg, paraInf) Then
-                        paraInf.Handled = True
-                        If paraInf.ParamType.Equals(GetType(Boolean)) Then
-                            paraInf.Value = True
-                        Else
+                    paramIndex.TryGetValue(curArg, paraInf)
+                Else
+                    Dim unhandledParams = From p In entityProp Where p.IsRequired AndAlso Not p.Handled
+                    If unhandledParams.Any Then
+                        paraInf = unhandledParams.First
+                        isImplicitParam = True
+                    End If
+                End If
+                ' 处理参数
+                If paraInf IsNot Nothing Then
+                    paraInf.Handled = True
+                    If paraInf.ParamType.Equals(GetType(Boolean)) Then
+                        paraInf.Value = Not CBool(paraInf.Value)
+                    Else
+                        If Not isImplicitParam Then
                             i += 1
                             curArg = args(i)
-                            Select Case paraInf.ParamType.FullName
-                                Case GetType(String).FullName
-                                    paraInf.Value = curArg
-                                Case GetType(Integer).FullName
-                                    Dim value As Integer
-                                    If Integer.TryParse(curArg, value) Then
-                                        paraInf.Value = value
-                                    Else
-                                        ShowHelp(entityProp, entryInfo.Prefix)
-                                        Return
-                                    End If
-                                Case GetType(Long).FullName
-                                    Dim value As Long
-                                    If Long.TryParse(curArg, value) Then
-                                        paraInf.Value = value
-                                    Else
-                                        ShowHelp(entityProp, entryInfo.Prefix)
-                                        Return
-                                    End If
-                                Case GetType(Double).FullName
-                                    Dim value As Double
-                                    If Double.TryParse(curArg, value) Then
-                                        paraInf.Value = value
-                                    Else
-                                        ShowHelp(entityProp, entryInfo.Prefix)
-                                        Return
-                                    End If
-                                Case GetType(Single).FullName
-                                    Dim value As Single
-                                    If Single.TryParse(curArg, value) Then
-                                        paraInf.Value = value
-                                    Else
-                                        ShowHelp(entityProp, entryInfo.Prefix)
-                                        Return
-                                    End If
-                            End Select
                         End If
-                    Else
-                        ShowHelp(entityProp, entryInfo.Prefix)
-                        Return
+                        Select Case paraInf.ParamType.FullName
+                            Case GetType(String).FullName
+                                paraInf.Value = curArg
+                            Case GetType(Integer).FullName
+                                Dim value As Integer
+                                If Integer.TryParse(curArg, value) Then
+                                    paraInf.Value = value
+                                Else
+                                    ShowHelp(entityProp, entryInfo.Prefix)
+                                    Return
+                                End If
+                            Case GetType(Long).FullName
+                                Dim value As Long
+                                If Long.TryParse(curArg, value) Then
+                                    paraInf.Value = value
+                                Else
+                                    ShowHelp(entityProp, entryInfo.Prefix)
+                                    Return
+                                End If
+                            Case GetType(Double).FullName
+                                Dim value As Double
+                                If Double.TryParse(curArg, value) Then
+                                    paraInf.Value = value
+                                Else
+                                    ShowHelp(entityProp, entryInfo.Prefix)
+                                    Return
+                                End If
+                            Case GetType(Single).FullName
+                                Dim value As Single
+                                If Single.TryParse(curArg, value) Then
+                                    paraInf.Value = value
+                                Else
+                                    ShowHelp(entityProp, entryInfo.Prefix)
+                                    Return
+                                End If
+                        End Select
                     End If
+                Else
+                    ShowHelp(entityProp, entryInfo.Prefix)
+                    Return
                 End If
             Next
             ' 对于可选参数，使用 Type.Missing。未指定的布尔值设置为 False。
@@ -163,12 +198,24 @@ Public Class App
                 If realParams IsNot Nothing Then
                     For Each ep In entityProp
                         Dim prop = entityType.GetRuntimeProperty(ep.Name)
+                        If prop Is Nothing OrElse prop.GetCustomAttribute(Of DisplayAttribute)?.Name IsNot Nothing Then
+                            prop = Aggregate p In entityType.GetRuntimeProperties
+                                   Let disp = p.GetCustomAttribute(Of DisplayAttribute)?.Name
+                                   Where ep.Name = disp
+                                   Select p Into [Single]
+                        End If
                         If Not ep.Value.Equals(Type.Missing) Then
                             prop.SetValue(entity, ep.Value)
                         End If
                     Next
                 End If
                 realParams = {entity}
+            Else
+                If realParams IsNot Nothing Then
+                    For i = 0 To realParams.Length - 1
+                        realParams(i) = entityProp(i).Value
+                    Next
+                End If
             End If
             Try
                 entryPoint.Invoke(Nothing, realParams)
@@ -181,11 +228,15 @@ Public Class App
         End If
     End Sub
 
-    Private Sub ShowHelp(entityProp As CommandLineParameterInfo(), prefix As String)
+    Private Shared Sub ShowHelp(entityProp As CommandLineParameterInfo(), prefix As String)
+        If entityProp Is Nothing OrElse entityProp.Length = 0 Then
+            Console.WriteLine("No argument(s) required.")
+            Return
+        End If
         Dim helpShort = From p In entityProp Select If(p.IsRequired, prefix + p.Name, $"[{prefix}{p.Name}]")
         Dim helpLong = From p In entityProp
-                       Select $"{If(p.IsRequired, "", "opt ")}{prefix}{p.Name}: {p.ParamType.Name}{Environment.NewLine}{p.Help}"
-        Console.Write("Args: ")
+                       Select $"{prefix}{p.Name}: {p.ParamType.Name}{Environment.NewLine}{If(p.IsRequired, "", "(Optional) ")}{p.Help}"
+        Console.Write("Arguments: ")
         Console.WriteLine(String.Join(" ", helpShort))
         Console.WriteLine(String.Join(Environment.NewLine, helpLong))
     End Sub
