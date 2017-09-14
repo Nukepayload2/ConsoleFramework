@@ -76,7 +76,9 @@ Public NotInheritable Class Application
                          Let disp = p.GetCustomAttribute(Of DisplayAttribute)
                          Let name = If(disp?.Name, p.Name)
                          Let help = disp?.Description
-                         Select New CommandLineParameterInfo(Not p.IsOptional, name, help, p.ParameterType)
+                         Select New CommandLineParameterInfo(Not p.IsOptional, name, help, p.ParameterType) With {
+                             .Value = If(p.IsOptional, p.DefaultValue, Nothing)
+                         }
                          Into ToArray
         End If
         ' Ê¶±ð°ïÖúÃüÁî
@@ -125,7 +127,9 @@ Public NotInheritable Class Application
                 If paraInf IsNot Nothing Then
                     paraInf.Handled = True
                     If paraInf.ParamType.Equals(GetType(Boolean)) Then
-                        paraInf.Value = Not CBool(paraInf.Value)
+                        If paraInf.Value IsNot Nothing Then
+                            paraInf.Value = Not CBool(paraInf.Value)
+                        End If
                     Else
                         If Not isImplicitParam Then
                             i += 1
@@ -180,11 +184,7 @@ Public NotInheritable Class Application
                         ShowHelp(entityProp, entryInfo.Prefix)
                         Return
                     End If
-                    If v.ParamType.Equals(GetType(Boolean)) Then
-                        v.Value = False
-                    Else
-                        v.Value = Type.Missing
-                    End If
+                    v.Value = Type.Missing
                 End If
             Next
         Else

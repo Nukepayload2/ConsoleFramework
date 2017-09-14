@@ -2,6 +2,11 @@
 
   <PropertyGroup>
     <TargetFramework>netstandard2.0</TargetFramework>
+    <Authors>Nukepayload2</Authors>
+    <Company>Nukepayload2</Company>
+    <Product>Console Framework</Product>
+    <Description>A command-line parameter relational mapping library.</Description>
+    <Copyright>Copyright 2017 Nukepayload2</Copyright>
   </PropertyGroup>
 
   <ItemGroup>

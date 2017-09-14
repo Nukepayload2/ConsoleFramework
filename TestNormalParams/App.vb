@@ -11,16 +11,16 @@ Public Class App
         srcB As String,
         <Display(Name:="dst", Description:="比较输出的目录。")>
         dest As String,
-        <Display(Name:="opencl", Description:="带有这个标签则说明强制使用 OpenCL。")>
-        Optional UseOpenCL As Boolean = Nothing
+        <Display(Name:="nogpu", Description:="带有这个标签则说明强制使用 OpenCL。")>
+        Optional OpenCL As Boolean = True
     )
         Console.WriteLine(NameOf(srcA) & " = " & srcA)
         Console.WriteLine(NameOf(srcB) & " = " & srcB)
         Console.WriteLine(NameOf(dest) & " = " & dest)
-        If UseOpenCL Then
-            Console.WriteLine(NameOf(UseOpenCL))
+        If OpenCL Then
+            Console.WriteLine(NameOf(OpenCL))
         Else
-            Console.WriteLine("Don't " + NameOf(UseOpenCL))
+            Console.WriteLine("Don't " + NameOf(OpenCL))
         End If
     End Sub
 End Class
