@@ -1,9 +1,8 @@
 ﻿Imports ConsoleFramework
 
-<EntryClass>
 Public Class App
-    <EntryMethod("-")>
-    Public Shared Sub App_StartUp(params As ParameterModel)
+    <EntryMethod>
+    Public Sub StartUp(params As ParameterModel)
         With params
             Console.WriteLine(NameOf(.Original) & " = " & .Original)
             Console.WriteLine(NameOf(.Compare) & " = " & .Compare)

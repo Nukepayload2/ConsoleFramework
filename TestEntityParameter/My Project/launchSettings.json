@@ -2,7 +2,7 @@
   "profiles": {
     "TestEntityParameter": {
       "commandName": "Project",
-      "commandLineArgs": "原图 比图 输出 -opencl"
+      "commandLineArgs": "原图 比图 输出 --OpenCL"
     }
   }
 }
