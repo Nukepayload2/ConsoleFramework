@@ -73,7 +73,7 @@ Public NotInheritable Class Application
     ''' <param name="entryMethod">入口方法的委托</param>
     ''' <exception cref="InvalidOperationException">找不到唯一合适的入口方法</exception>
     Public Shared Sub Run(entryMethod As [Delegate])
-        Run(Environment.GetCommandLineArgs, entryMethod)
+        Run(Environment.GetCommandLineArgs.Skip(1).ToArray, entryMethod)
     End Sub
 
     Private Shared Function TryParseParameters(args() As String,
