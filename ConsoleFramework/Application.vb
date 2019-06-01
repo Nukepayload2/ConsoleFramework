@@ -15,6 +15,7 @@ Public NotInheritable Class Application
         GetType(Double), GetType(Single),
         GetType(Boolean)
     }
+
     ''' <summary>
     ''' 运行指定类型所属的程序集中的控制台应用程序。
     ''' </summary>
@@ -39,6 +40,40 @@ Public NotInheritable Class Application
         Else
             ShowHelp(entityProp)
         End If
+    End Sub
+
+    ''' <summary>
+    ''' 将命令行参数转换成指定方法的参数并调用指定的入口方法。
+    ''' </summary>
+    ''' <typeparam name="TApp">应用程序类。</typeparam>
+    ''' <param name="args">应用程序的参数</param>
+    ''' <param name="entryMethod">入口方法的委托</param>
+    ''' <exception cref="InvalidOperationException">找不到唯一合适的入口方法</exception>
+    Public Shared Sub Run(args As String(), entryMethod As System.Delegate)
+        Dim entryPoint = entryMethod.Method
+        Dim entityProp As CommandLineParameterInfo() = Nothing
+        Dim realParams As Object() = Nothing
+        If TryParseParameters(args, entryPoint, entityProp, realParams) Then
+            Try
+                entryMethod.DynamicInvoke(realParams)
+            Catch ex As TargetInvocationException
+                Throw ex.InnerException
+            Catch ex As Exception
+                ShowHelp(entityProp)
+            End Try
+        Else
+            ShowHelp(entityProp)
+        End If
+    End Sub
+
+    ''' <summary>
+    ''' 将当前进程的命令行参数转换成指定方法的参数并调用指定的入口方法。
+    ''' </summary>
+    ''' <typeparam name="TApp">应用程序类。</typeparam>
+    ''' <param name="entryMethod">入口方法的委托</param>
+    ''' <exception cref="InvalidOperationException">找不到唯一合适的入口方法</exception>
+    Public Shared Sub Run(entryMethod As [Delegate])
+        Run(Environment.GetCommandLineArgs, entryMethod)
     End Sub
 
     Private Shared Function TryParseParameters(args() As String,
