@@ -1,5 +1,5 @@
 ﻿Imports System.ComponentModel.DataAnnotations
-Imports ConsoleFramework
+Imports Nukepayload2.ConsoleFramework
 
 Public Class App
     <EntryMethod()>

@@ -26,37 +26,35 @@ Public NotInheritable Class Application
                          Let mp = main.GetCustomAttribute(Of EntryMethodAttribute)
                          Where mp IsNot Nothing
                          Select main Into [Single]
+        Dim entityProp As CommandLineParameterInfo() = Nothing
+        Dim realParams As Object() = Nothing
+        If TryParseParameters(args, entryPoint, entityProp, realParams) Then
+            Try
+                entryPoint.Invoke(New TApp, realParams)
+            Catch ex As TargetInvocationException
+                Throw
+            Catch ex As Exception
+                ShowHelp(entityProp)
+            End Try
+        Else
+            ShowHelp(entityProp)
+        End If
+    End Sub
+
+    Private Shared Function TryParseParameters(args() As String,
+                                               entryPoint As MethodInfo,
+                                               ByRef entityProp() As CommandLineParameterInfo,
+                                               ByRef realParams() As Object) As Boolean
         Dim params = entryPoint.GetParameters
-        Dim entityProp As CommandLineParameterInfo()
         Dim isEntityModel = False
         Dim entity As Object = Nothing
         ' 解析形参
-        If params.Length = 1 Then
-            Dim param = params(0)
-            Dim parameterType As Type = param.ParameterType
-            If Not AllowedParamTypes.Contains(parameterType) Then
-                ' 实体类
-                entity = Activator.CreateInstance(parameterType)
-                isEntityModel = True
-                entityProp = Aggregate p In parameterType.GetRuntimeProperties
-                             Where p.CanRead AndAlso p.CanWrite AndAlso p.GetAccessors.All(Function(ac) ac.IsPublic)
-                             Let req = p.GetCustomAttribute(Of RequiredAttribute)
-                             Let disp = p.GetCustomAttribute(Of DisplayAttribute)
-                             Let name = If(disp?.Name, p.Name)
-                             Let sname = disp?.ShortName
-                             Let help = disp?.Description
-                             Select New CommandLineParameterInfo(req IsNot Nothing, name, sname, help, p.PropertyType) With {
-                                 .Value = If(req Is Nothing, p.GetValue(entity), Nothing)
-                             }
-                             Into ToArray
-            End If
-        End If
+        TryParseEntityParameters(entityProp, params, isEntityModel, entity)
+
         If params.Length = 0 Then
             ' 没参数
             entityProp = Nothing
-#Disable Warning BC42104 ' 在为变量赋值之前，变量已被使用
         ElseIf entityProp Is Nothing Then
-#Enable Warning BC42104 ' 在为变量赋值之前，变量已被使用
             ' 对应参数
             entityProp = Aggregate p In params
                          Let disp = p.GetCustomAttribute(Of DisplayAttribute)
@@ -68,13 +66,12 @@ Public NotInheritable Class Application
                          }
                          Into ToArray
         End If
+
         ' 识别帮助命令
         If args.Length = 1 AndAlso HelpCommands.Contains(args(0).ToLowerInvariant) Then
-            ShowHelp(entityProp)
-            Return
+            Return False
         End If
-        ' 将实际传递的参数填入形参。
-        Dim realParams As Object()
+
         If entityProp IsNot Nothing Then
             Dim paramIndex = entityProp.ToDictionary(Function(o) LongPrefix + o.Name.ToLowerInvariant, Function(o) o)
             Dim values = paramIndex.Values
@@ -131,46 +128,40 @@ Public NotInheritable Class Application
                                 If Integer.TryParse(curArg, value) Then
                                     paraInf.Value = value
                                 Else
-                                    ShowHelp(entityProp)
-                                    Return
+                                    Return False
                                 End If
                             Case GetType(Long).FullName
                                 Dim value As Long
                                 If Long.TryParse(curArg, value) Then
                                     paraInf.Value = value
                                 Else
-                                    ShowHelp(entityProp)
-                                    Return
+                                    Return False
                                 End If
                             Case GetType(Double).FullName
                                 Dim value As Double
                                 If Double.TryParse(curArg, value) Then
                                     paraInf.Value = value
                                 Else
-                                    ShowHelp(entityProp)
-                                    Return
+                                    Return False
                                 End If
                             Case GetType(Single).FullName
                                 Dim value As Single
                                 If Single.TryParse(curArg, value) Then
                                     paraInf.Value = value
                                 Else
-                                    ShowHelp(entityProp)
-                                    Return
+                                    Return False
                                 End If
                         End Select
                     End If
                 Else
-                    ShowHelp(entityProp)
-                    Return
+                    Return False
                 End If
             Next
             ' 对于可选参数，使用 Type.Missing。未指定的布尔值设置为 False。
             For Each v In values
                 If Not v.Handled Then
                     If v.IsRequired Then
-                        ShowHelp(entityProp)
-                        Return
+                        Return False
                     End If
                     v.Value = Type.Missing
                 End If
@@ -178,7 +169,13 @@ Public NotInheritable Class Application
         Else
             realParams = Nothing
         End If
-        ' 调用入口
+
+        ' 准备参数，调用入口用
+        realParams = ActivateParameters(entityProp, realParams, params, isEntityModel, entity)
+        Return True
+    End Function
+
+    Private Shared Function ActivateParameters(entityProp() As CommandLineParameterInfo, realParams() As Object, params() As ParameterInfo, isEntityModel As Boolean, entity As Object) As Object()
         If isEntityModel Then
             Dim entityType = params(0).ParameterType
             If realParams IsNot Nothing Then
@@ -203,14 +200,35 @@ Public NotInheritable Class Application
                 Next
             End If
         End If
-        Try
-            entryPoint.Invoke(New TApp, realParams)
-        Catch ex As TargetInvocationException
-            Throw
-        Catch ex As Exception
-            ShowHelp(entityProp)
-            Return
-        End Try
+
+        Return realParams
+    End Function
+
+    Private Shared Sub TryParseEntityParameters(ByRef entityProp() As CommandLineParameterInfo,
+                                                params() As ParameterInfo,
+                                                ByRef isEntityModel As Boolean,
+                                                ByRef entity As Object)
+        If params.Length = 1 Then
+            Dim param = params(0)
+            Dim parameterType As Type = param.ParameterType
+            If Not AllowedParamTypes.Contains(parameterType) Then
+                ' 实体类
+                entity = Activator.CreateInstance(parameterType)
+                Dim entityByVal = entity
+                isEntityModel = True
+                entityProp = Aggregate p In parameterType.GetRuntimeProperties
+                             Where p.CanRead AndAlso p.CanWrite AndAlso p.GetAccessors.All(Function(ac) ac.IsPublic)
+                             Let req = p.GetCustomAttribute(Of RequiredAttribute)
+                             Let disp = p.GetCustomAttribute(Of DisplayAttribute)
+                             Let name = If(disp?.Name, p.Name)
+                             Let sname = disp?.ShortName
+                             Let help = disp?.Description
+                             Select New CommandLineParameterInfo(req IsNot Nothing, name, sname, help, p.PropertyType) With {
+                                 .Value = If(req Is Nothing, p.GetValue(entityByVal), Nothing)
+                             }
+                             Into ToArray
+            End If
+        End If
     End Sub
 
     Public Shared Property ShortPrefix As String = "-"

@@ -1,4 +1,4 @@
-Imports ConsoleFramework
+Imports Nukepayload2.ConsoleFramework
 
 Module Program
     Sub Main(args As String())

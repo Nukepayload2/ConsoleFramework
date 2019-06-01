@@ -20,9 +20,11 @@ Tested on Windows 10 version 1703 (zh-CN, x64). I'm not sure that it will run co
 </PackageReleaseNotes>
     <PackageTags>console command-line parameter</PackageTags>
     <NeutralLanguage>zh-CN</NeutralLanguage>
-    <Version>1.1.0</Version>
+    <Version>1.2.0</Version>
     <RootNamespace>Nukepayload2.ConsoleFramework</RootNamespace>
     <AssemblyName>Nukepayload2.ConsoleFramework</AssemblyName>
+    <PackageLicenseExpression>MIT License</PackageLicenseExpression>
+    <AssemblyVersion>1.2.0.0</AssemblyVersion>
   </PropertyGroup>
 
   <ItemGroup>
