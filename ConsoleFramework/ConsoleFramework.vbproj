@@ -11,12 +11,12 @@ Supported parameter types: String, Int32, Int64, Double, Single and Boolean.
 Supported parameter kinds: Direct, Entity (Put all parameters in a class).
 Supported locales: zh-CN, en-US. Fallback: en-US.
 Use DisplayAttribute to specify Names, ShortNames and Descriptions of each parameters.
-Tested on Windows 10 version 1703 (zh-CN, x64). I'm not sure that it will run correctly on other platforms or UICultures.</Description>
-    <Copyright>Copyright 2017 Nukepayload2</Copyright>
+Tested on Windows 10 version 1903 (zh-CN, x64). I'm not sure that it will run correctly on other platforms or UICultures.</Description>
+    <Copyright>Copyright 2017-2019 Nukepayload2</Copyright>
     <PackageProjectUrl>https://github.com/Nukepayload2/ConsoleFramework</PackageProjectUrl>
     <RepositoryUrl>https://github.com/Nukepayload2/ConsoleFramework.git</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
-    <PackageReleaseNotes>This version has breaking changes. Simplified usage and supported parameter short names and entity default values.
+    <PackageReleaseNotes>Added Application.Run(&lt;Lambda Expression&gt;) overload
 </PackageReleaseNotes>
     <PackageTags>console command-line parameter</PackageTags>
     <NeutralLanguage>zh-CN</NeutralLanguage>

@@ -1,6 +1,44 @@
 # ConsoleFramework
 主要针对 .NET Core 设计的控制台应用程序框架。使用 ORM 思想设计。
 
+## 快速上手
+__VB__
+```vbnet
+Module Module1
+    Sub Main()
+        Nukepayload2.ConsoleFramework.Application.Run(
+        Sub(port As Integer)
+            Console.WriteLine("Started at " & port)
+        End Sub)
+    End Sub
+End Module
+```
+
+__C#__
+```csharp
+static class Program
+{
+    public static void Main()
+    {
+        Nukepayload2.ConsoleFramework.Application.Run(
+        int port =>
+        {
+            Console.WriteLine("Started at " + port);
+        });
+    }
+}
+```
+
+__Cmd__
+```cmd
+ConsoleApp1.exe --port 12345
+```
+
+__运行结果__
+```text
+Started at 12345
+```
+
 ## 进度
 测试了简单的示例。
 
