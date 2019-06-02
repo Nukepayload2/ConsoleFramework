@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "TestSimpleStartup_CSharp": {
+      "commandName": "Project",
+      "commandLineArgs": "--port 12345"
+    }
+  }
+}

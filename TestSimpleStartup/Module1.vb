@@ -3,7 +3,7 @@
     Sub Main()
         Nukepayload2.ConsoleFramework.Application.Run(
         Sub(port As Integer)
-            MsgBox("Started at " & port)
+            Console.WriteLine("Started at " & port)
         End Sub)
     End Sub
 
