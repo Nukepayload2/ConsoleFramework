@@ -16,15 +16,20 @@ End Module
 
 __C#__
 ```csharp
-static class Program
+using System;
+
+namespace TestSimpleStartup_CSharp
 {
-    public static void Main()
+    class Program
     {
-        Nukepayload2.ConsoleFramework.Application.Run(
-        int port =>
+        static void Main(string[] args)
         {
-            Console.WriteLine("Started at " + port);
-        });
+            Nukepayload2.ConsoleFramework.Application.Run(
+            (Action<int>)(port =>
+            {
+                Console.WriteLine("Started at " + port);
+            }));
+        }
     }
 }
 ```
