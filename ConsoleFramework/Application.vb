@@ -1,9 +1,10 @@
-Option Strict On
+ï»¿Option Strict On
 Imports System.Reflection
 Imports System.ComponentModel.DataAnnotations
+Imports System.Runtime.CompilerServices
 
 ''' <summary>
-''' ±íÊ¾¿ØÖÆÌ¨Ó¦ÓÃ³ÌĞò
+''' è¡¨ç¤ºæ§åˆ¶å°åº”ç”¨ç¨‹åº
 ''' </summary>
 Public NotInheritable Class Application
     Public Shared ReadOnly Property HelpCommands As New List(Of String) From {
@@ -17,11 +18,11 @@ Public NotInheritable Class Application
     }
 
     ''' <summary>
-    ''' ÔËĞĞÖ¸¶¨ÀàĞÍËùÊôµÄ³ÌĞò¼¯ÖĞµÄ¿ØÖÆÌ¨Ó¦ÓÃ³ÌĞò¡£
+    ''' è¿è¡ŒæŒ‡å®šç±»å‹æ‰€å±çš„ç¨‹åºé›†ä¸­çš„æ§åˆ¶å°åº”ç”¨ç¨‹åºã€‚
     ''' </summary>
-    ''' <typeparam name="TApp">Ó¦ÓÃ³ÌĞòÀà¡£</typeparam>
-    ''' <param name="args">Ó¦ÓÃ³ÌĞòµÄ²ÎÊı</param>
-    ''' <exception cref="InvalidOperationException">ÕÒ²»µ½Î¨Ò»ºÏÊÊµÄÈë¿Ú·½·¨</exception>
+    ''' <typeparam name="TApp">åº”ç”¨ç¨‹åºç±»ã€‚</typeparam>
+    ''' <param name="args">åº”ç”¨ç¨‹åºçš„å‚æ•°</param>
+    ''' <exception cref="InvalidOperationException">æ‰¾ä¸åˆ°å”¯ä¸€åˆé€‚çš„å…¥å£æ–¹æ³•</exception>
     Public Shared Sub Run(Of TApp As New)(args As String())
         Dim entryPoint = Aggregate main In GetType(TApp).GetRuntimeMethods
                          Let mp = main.GetCustomAttribute(Of EntryMethodAttribute)
@@ -43,19 +44,23 @@ Public NotInheritable Class Application
     End Sub
 
     ''' <summary>
-    ''' ½«ÃüÁîĞĞ²ÎÊı×ª»»³ÉÖ¸¶¨·½·¨µÄ²ÎÊı²¢µ÷ÓÃÖ¸¶¨µÄÈë¿Ú·½·¨¡£
+    ''' å°†å‘½ä»¤è¡Œå‚æ•°è½¬æ¢æˆæŒ‡å®šæ–¹æ³•çš„å‚æ•°å¹¶è°ƒç”¨æŒ‡å®šçš„å…¥å£æ–¹æ³•ã€‚
     ''' </summary>
-    ''' <typeparam name="TApp">Ó¦ÓÃ³ÌĞòÀà¡£</typeparam>
-    ''' <param name="args">Ó¦ÓÃ³ÌĞòµÄ²ÎÊı</param>
-    ''' <param name="entryMethod">Èë¿Ú·½·¨µÄÎ¯ÍĞ</param>
-    ''' <exception cref="InvalidOperationException">ÕÒ²»µ½Î¨Ò»ºÏÊÊµÄÈë¿Ú·½·¨</exception>
+    ''' <typeparam name="TApp">åº”ç”¨ç¨‹åºç±»ã€‚</typeparam>
+    ''' <param name="args">åº”ç”¨ç¨‹åºçš„å‚æ•°</param>
+    ''' <param name="entryMethod">å…¥å£æ–¹æ³•çš„å§”æ‰˜</param>
+    ''' <exception cref="InvalidOperationException">æ‰¾ä¸åˆ°å”¯ä¸€åˆé€‚çš„å…¥å£æ–¹æ³•</exception>
     Public Shared Sub Run(args As String(), entryMethod As System.Delegate)
         Dim entryPoint = entryMethod.Method
         Dim entityProp As CommandLineParameterInfo() = Nothing
         Dim realParams As Object() = Nothing
         If TryParseParameters(args, entryPoint, entityProp, realParams) Then
             Try
-                entryMethod.DynamicInvoke(realParams)
+                Dim retVal = entryMethod.DynamicInvoke(realParams)
+                Dim retType = entryMethod.Method.ReturnType
+                If IsAwaitable(retType) AndAlso retVal IsNot Nothing Then
+                    LateWaitTask(retVal)
+                End If
             Catch ex As TargetInvocationException
                 Throw ex.InnerException
             Catch ex As Exception
@@ -66,12 +71,38 @@ Public NotInheritable Class Application
         End If
     End Sub
 
+    Private Shared Function IsAwaitable(returnType As Type) As Boolean
+        IsAwaitable = False
+
+        If returnType IsNot GetType(Void) Then
+            Dim getAwaiterMethod As MethodInfo = returnType.GetRuntimeMethod("GetAwaiter", Type.EmptyTypes)
+            If getAwaiterMethod IsNot Nothing Then
+                Dim awaiterType As Type = getAwaiterMethod.ReturnType
+                IsAwaitable = IsAwaiter(awaiterType)
+            End If
+        End If
+    End Function
+
+    Private Shared Function IsAwaiter(awaiterType As Type) As Boolean
+        IsAwaiter = False
+
+        Dim isCriticalNotify = GetType(ICriticalNotifyCompletion).IsAssignableFrom(awaiterType)
+        Dim isNotify = GetType(INotifyCompletion).IsAssignableFrom(awaiterType)
+        If isCriticalNotify OrElse isNotify Then
+            Dim isCompletedProperty As PropertyInfo = awaiterType.GetRuntimeProperty("IsCompleted")
+            If isCompletedProperty IsNot Nothing AndAlso isCompletedProperty.CanRead Then
+                Dim getResultMethod As MethodInfo = awaiterType.GetRuntimeMethod("GetResult", Type.EmptyTypes)
+                If getResultMethod IsNot Nothing Then IsAwaiter = True
+            End If
+        End If
+    End Function
+
     ''' <summary>
-    ''' ½«µ±Ç°½ø³ÌµÄÃüÁîĞĞ²ÎÊı×ª»»³ÉÖ¸¶¨·½·¨µÄ²ÎÊı²¢µ÷ÓÃÖ¸¶¨µÄÈë¿Ú·½·¨¡£
+    ''' å°†å½“å‰è¿›ç¨‹çš„å‘½ä»¤è¡Œå‚æ•°è½¬æ¢æˆæŒ‡å®šæ–¹æ³•çš„å‚æ•°å¹¶è°ƒç”¨æŒ‡å®šçš„å…¥å£æ–¹æ³•ã€‚
     ''' </summary>
-    ''' <typeparam name="TApp">Ó¦ÓÃ³ÌĞòÀà¡£</typeparam>
-    ''' <param name="entryMethod">Èë¿Ú·½·¨µÄÎ¯ÍĞ</param>
-    ''' <exception cref="InvalidOperationException">ÕÒ²»µ½Î¨Ò»ºÏÊÊµÄÈë¿Ú·½·¨</exception>
+    ''' <typeparam name="TApp">åº”ç”¨ç¨‹åºç±»ã€‚</typeparam>
+    ''' <param name="entryMethod">å…¥å£æ–¹æ³•çš„å§”æ‰˜</param>
+    ''' <exception cref="InvalidOperationException">æ‰¾ä¸åˆ°å”¯ä¸€åˆé€‚çš„å…¥å£æ–¹æ³•</exception>
     Public Shared Sub Run(entryMethod As [Delegate])
         Run(Environment.GetCommandLineArgs.Skip(1).ToArray, entryMethod)
     End Sub
@@ -83,14 +114,14 @@ Public NotInheritable Class Application
         Dim params = entryPoint.GetParameters
         Dim isEntityModel = False
         Dim entity As Object = Nothing
-        ' ½âÎöĞÎ²Î
+        ' è§£æå½¢å‚
         TryParseEntityParameters(entityProp, params, isEntityModel, entity)
 
         If params.Length = 0 Then
-            ' Ã»²ÎÊı
+            ' æ²¡å‚æ•°
             entityProp = Nothing
         ElseIf entityProp Is Nothing Then
-            ' ¶ÔÓ¦²ÎÊı
+            ' å¯¹åº”å‚æ•°
             entityProp = Aggregate p In params
                          Let disp = p.GetCustomAttribute(Of DisplayAttribute)
                          Let name = If(disp?.Name, p.Name)
@@ -102,7 +133,7 @@ Public NotInheritable Class Application
                          Into ToArray
         End If
 
-        ' Ê¶±ğ°ïÖúÃüÁî
+        ' è¯†åˆ«å¸®åŠ©å‘½ä»¤
         If args.Length = 1 AndAlso HelpCommands.Contains(args(0).ToLowerInvariant) Then
             Return False
         End If
@@ -115,25 +146,25 @@ Public NotInheritable Class Application
                 If prop.ShortName.Length > 0 Then
                     Dim key As String = ShortPrefix + prop.ShortName.ToLowerInvariant
                     If paramIndex.ContainsKey(key) Then
-                        Throw New ParameterMappingViolationException("¶ÌÃû³Æ´æÔÚ³åÍ»¡£")
+                        Throw New ParameterMappingViolationException("çŸ­åç§°å­˜åœ¨å†²çªã€‚")
                     End If
                     paramIndex.Add(key, prop)
                 End If
             Next
-            ' ¼ì²é²ÎÊıÊÇ·ñ·ûºÏÒªÇó
+            ' æ£€æŸ¥å‚æ•°æ˜¯å¦ç¬¦åˆè¦æ±‚
             For Each v In values
-                ' ²ÎÊıµÄÀàĞÍ¼ì²é
+                ' å‚æ•°çš„ç±»å‹æ£€æŸ¥
                 If Not AllowedParamTypes.Contains(v.ParamType) Then
-                    Throw New ParameterMappingViolationException("²ÎÊıÀàĞÍ²»ÊÇÔ¤ÆÚµÄ¡£Çë²é¿´°ïÖú https://github.com/Nukepayload2/ConsoleFramework/blob/master/README.md¡£")
+                    Throw New ParameterMappingViolationException("å‚æ•°ç±»å‹ä¸æ˜¯é¢„æœŸçš„ã€‚è¯·æŸ¥çœ‹å¸®åŠ© https://github.com/Nukepayload2/ConsoleFramework/blob/master/README.mdã€‚")
                 End If
-                ' ²¼¶ûÖµ±ØĞëÊÇ¿ÉÑ¡²ÎÊı
+                ' å¸ƒå°”å€¼å¿…é¡»æ˜¯å¯é€‰å‚æ•°
                 If v.IsRequired AndAlso v.ParamType.Equals(GetType(Boolean)) Then
-                    Throw New ParameterMappingViolationException("²¼¶ûÖµ±ØĞëÊÇ¿ÉÑ¡²ÎÊı¡£")
+                    Throw New ParameterMappingViolationException("å¸ƒå°”å€¼å¿…é¡»æ˜¯å¯é€‰å‚æ•°ã€‚")
                 End If
             Next
             For i = 0 To args.Length - 1
                 Dim curArg = args(i)
-                ' Ñ¡ÔñÒ»¸öÒª´¦ÀíµÄ²ÎÊı
+                ' é€‰æ‹©ä¸€ä¸ªè¦å¤„ç†çš„å‚æ•°
                 Dim paraInf As CommandLineParameterInfo = Nothing
                 Dim isImplicitParam = False
                 If curArg.StartsWith(ShortPrefix) OrElse curArg.StartsWith(LongPrefix) Then
@@ -145,7 +176,7 @@ Public NotInheritable Class Application
                         isImplicitParam = True
                     End If
                 End If
-                ' ´¦Àí²ÎÊı
+                ' å¤„ç†å‚æ•°
                 If paraInf IsNot Nothing Then
                     paraInf.Handled = True
                     If paraInf.ParamType.Equals(GetType(Boolean)) Then
@@ -192,7 +223,7 @@ Public NotInheritable Class Application
                     Return False
                 End If
             Next
-            ' ¶ÔÓÚ¿ÉÑ¡²ÎÊı£¬Ê¹ÓÃ Type.Missing¡£Î´Ö¸¶¨µÄ²¼¶ûÖµÉèÖÃÎª False¡£
+            ' å¯¹äºå¯é€‰å‚æ•°ï¼Œä½¿ç”¨ Type.Missingã€‚æœªæŒ‡å®šçš„å¸ƒå°”å€¼è®¾ç½®ä¸º Falseã€‚
             For Each v In values
                 If Not v.Handled Then
                     If v.IsRequired Then
@@ -205,7 +236,7 @@ Public NotInheritable Class Application
             realParams = Nothing
         End If
 
-        ' ×¼±¸²ÎÊı£¬µ÷ÓÃÈë¿ÚÓÃ
+        ' å‡†å¤‡å‚æ•°ï¼Œè°ƒç”¨å…¥å£ç”¨
         realParams = ActivateParameters(entityProp, realParams, params, isEntityModel, entity)
         Return True
     End Function
@@ -247,7 +278,7 @@ Public NotInheritable Class Application
             Dim param = params(0)
             Dim parameterType As Type = param.ParameterType
             If Not AllowedParamTypes.Contains(parameterType) Then
-                ' ÊµÌåÀà
+                ' å®ä½“ç±»
                 entity = Activator.CreateInstance(parameterType)
                 Dim entityByVal = entity
                 isEntityModel = True
