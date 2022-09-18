@@ -74,6 +74,10 @@ Public NotInheritable Class Application
     Private Shared Function IsAwaitable(returnType As Type) As Boolean
         IsAwaitable = False
 
+        If returnType = GetType(Task) OrElse returnType = GetType(ValueTask) Then
+            Return True
+        End If
+
         If returnType IsNot GetType(Void) Then
             Dim getAwaiterMethod As MethodInfo = returnType.GetRuntimeMethod("GetAwaiter", Type.EmptyTypes)
             If getAwaiterMethod IsNot Nothing Then
@@ -128,7 +132,7 @@ Public NotInheritable Class Application
                          Let help = disp?.Description
                          Let sname = disp?.ShortName
                          Select New CommandLineParameterInfo(Not p.IsOptional, name, sname, help, p.ParameterType) With {
-                             .Value = If(p.IsOptional, p.DefaultValue, Nothing)
+                             .Value = If(p.IsOptional, If(p.HasDefaultValue, p.DefaultValue, Nothing), Nothing)
                          }
                          Into ToArray
         End If
@@ -221,15 +225,6 @@ Public NotInheritable Class Application
                     End If
                 Else
                     Return False
-                End If
-            Next
-            ' 对于可选参数，使用 Type.Missing。未指定的布尔值设置为 False。
-            For Each v In values
-                If Not v.Handled Then
-                    If v.IsRequired Then
-                        Return False
-                    End If
-                    v.Value = Type.Missing
                 End If
             Next
         Else
