@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFrameworks>netstandard2.0;net45;netcoreapp3.0</TargetFrameworks>
+    <TargetFrameworks>netstandard2.0;net462</TargetFrameworks>
     <Authors>Nukepayload2</Authors>
     <Company>Nukepayload2</Company>
     <Product>Console Framework</Product>
@@ -11,21 +11,21 @@ Supported parameter types: String, Int32, Int64, Double, Single and Boolean.
 Supported parameter kinds: Direct, Entity (Put all parameters in a class).
 Supported locales: zh-CN, en-US. Fallback: en-US.
 Use DisplayAttribute to specify Names, ShortNames and Descriptions of each parameters.
-Tested on Windows 10 version 1903 (zh-CN, x64). I'm not sure that it will run correctly on other platforms or UICultures.</Description>
-    <Copyright>Copyright 2017-2019 Nukepayload2</Copyright>
+Tested on Windows 10 version 21H2 (zh-CN, x64). I'm not sure that it will run correctly on other platforms or UICultures.</Description>
+    <Copyright>Copyright 2017-2022 Nukepayload2</Copyright>
     <PackageProjectUrl>https://github.com/Nukepayload2/ConsoleFramework</PackageProjectUrl>
     <RepositoryUrl>https://github.com/Nukepayload2/ConsoleFramework.git</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
-    <PackageReleaseNotes>Added more target frameworks. 
-Added async entry method support.
+    <PackageReleaseNotes>- Fixed some bugs related to optional parameters.
+- Support asynchronous functions that return `ValueTask`.
+- Dropped EOL .NET Framework versions.
 </PackageReleaseNotes>
     <PackageTags>console command-line parameter</PackageTags>
     <NeutralLanguage>zh-CN</NeutralLanguage>
-    <Version>1.3.0</Version>
+    <Version>1.4.0</Version>
     <RootNamespace>Nukepayload2.ConsoleFramework</RootNamespace>
     <AssemblyName>Nukepayload2.ConsoleFramework</AssemblyName>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
-    <AssemblyVersion>1.3.0.0</AssemblyVersion>
     <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
   </PropertyGroup>
 
@@ -39,6 +39,10 @@ Added async entry method support.
 
   <ItemGroup>
     <PackageReference Include="System.ComponentModel.Annotations" Version="4.4.0" />
+  </ItemGroup>
+
+  <ItemGroup Condition="$(TargetFramework) != 'net6.0'">
+    <PackageReference Include="System.Threading.Tasks.Extensions" Version="4.5.0" />
   </ItemGroup>
 
 </Project>
