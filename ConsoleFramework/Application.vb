@@ -174,10 +174,13 @@ Public NotInheritable Class Application
                 If curArg.StartsWith(ShortPrefix) OrElse curArg.StartsWith(LongPrefix) Then
                     paramIndex.TryGetValue(curArg.ToLowerInvariant, paraInf)
                 Else
-                    Dim unhandledParams = From p In entityProp Where p.IsRequired AndAlso Not p.Handled
-                    If unhandledParams.Any Then
-                        paraInf = unhandledParams.First
+                    Dim unhandledParams = From p In entityProp Where Not p.Handled
+                    paraInf = unhandledParams.FirstOrDefault
+                    If paraInf IsNot Nothing Then
                         isImplicitParam = True
+                    Else
+                        ' 多出来个参数，不对劲
+                        Return False
                     End If
                 End If
                 ' 处理参数
